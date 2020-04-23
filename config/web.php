@@ -13,8 +13,11 @@ $config = [
     ],
     'components' => [
         'request' => [
+            'parsers' => [
+                'application/json' => 'yii\web\JsonParser',
+            ],
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
-            'cookieValidationKey' => 'qjFdSDpvCmugSWeqxk1dQK9qNUzFU8m9',
+            'cookieValidationKey' => 'YrwT1xirlP0eptDH2BmX0nbl_wkQ8RZh',
         ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
@@ -40,17 +43,33 @@ $config = [
                     'class' => 'yii\log\FileTarget',
                     'levels' => ['error', 'warning'],
                 ],
+                [
+                    'class' => 'yii\log\FileTarget',
+                    'categories' => ['failed-verification'],
+                    'logFile' => '@runtime/logs/payments/payment_'.date('YmdH').'.log',
+                ],
             ],
         ],
         'db' => $db,
-        /*
+
         'urlManager' => [
+            'class' => 'yii\web\UrlManager',
             'enablePrettyUrl' => true,
+            'enableStrictParsing' => true,
             'showScriptName' => false,
             'rules' => [
+                /*[
+                    'class' => 'yii\rest\UrlRule',
+                    'controller' => 'books',
+                    'prefix' => 'api/v1/',
+                ],*/
+                '' => 'site/index',
+                'index' => 'site/index',
+                'books' => 'book/index',
+                'authors' => 'author/index',
             ],
         ],
-        */
+
     ],
     'params' => $params,
 ];

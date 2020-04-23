@@ -9,6 +9,11 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\models\Payment;
+use app\models\Book;
+
+
+
 
 class SiteController extends Controller
 {
@@ -61,7 +66,9 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        $booksList = Book::find()->all();
+
+        return $this->render('index', ['booksList' => $booksList]);
     }
 
     /**
@@ -125,4 +132,56 @@ class SiteController extends Controller
     {
         return $this->render('about');
     }
+
+    public function actionCreatexml() {
+        memory_get_usage();
+//        $payments = Payment::find()->innerJoinWith('credits')->limit(10)->asArray()->all();
+        $reports = [];
+        $logs = [];
+        $payments = Payment::find()
+            ->select('payments.*')
+            ->leftJoin('credits', '`credits`.`id` = `payments`.`cred_id`')
+            ->where(['credits.id' => null])
+            ->with('credits')
+            ->limit(50)
+            ->asArray()
+            ->all();
+
+        foreach ($payments as $payment) {
+            $dataSet = unserialize($payment['data_set']);
+            if ($dataSet['overdue'] != 0) {
+                $idx = $payment['id'];
+                $reports[$idx]['cred_id'] = $payment['cred_id'];
+                $reports[$idx]['overdue'] = $dataSet['overdue'];
+            } else {
+                $idx = $payment['id'];
+                $logs[$idx]['cred_id'] = $payment['cred_id'];
+                $logs[$idx]['overdue'] = $dataSet['overdue'];
+            }
+        }
+        Yii::info($logs, 'failed-verification');
+
+        $dom = new \DOMDocument('1.0', 'utf-8');
+        $xmlRoot = $dom->appendChild($dom->createElement('payments'));
+        foreach ($reports as $id => $payment) {
+            $xmlPayment = $xmlRoot->appendChild($dom->createElement('payment'));
+            $xmlPayment->setAttribute('id', $id);
+            foreach($payment as $key => $value) {
+                $xmlName = $xmlPayment->appendChild($dom->createElement($key));
+                $xmlName->appendChild($dom->createTextNode($value));
+            }
+        }
+        $dom->formatOutput = true;
+        $dom->save(yii::$app->basePath . '\xml\payments.xml');
+
+//        $dom->load(yii::$app->basePath . '\xml\payments.xml');
+//        if ($dom->validate()) {
+//            echo "Документ является действительным!\n";
+//        } else {
+//            echo "Документ не является действительным!\n";
+//        }
+        $memory = (!function_exists('memory_get_usage')) ? '' : round(memory_get_usage()/1024/1024, 2) . 'MB';
+        echo $memory;
+    }
+
 }
